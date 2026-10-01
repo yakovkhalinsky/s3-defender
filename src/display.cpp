@@ -24,6 +24,9 @@ uint32_t s_activity = 0;
 char s_line[8][30]; // 0 header, 1-3 wifi, 4-6 ble, 7 footer
 
 // overwrite one text row (10 px) with the given string
+// the T-Dongle-S3's GPIO38 backlight is wired active-low: LEDC duty 0 = lit
+inline void bl(uint8_t duty) { ledcWrite(0, 255 - duty); }
+
 void line(const char* text, uint8_t row, uint16_t fg) {
   const uint8_t y = row * 10;
   s_tft.fillRect(0, y, 160, 10, C_BG);
@@ -49,11 +52,12 @@ bool begin() {
   // backlight PWM on GPIO38 (the TFT_eSPI setup does not own TFT_BL)
   ledcSetup(0, 4000, 8);
   ledcAttachPin(PIN_TFT_BL, 0);
-  ledcWrite(0, 255);
+  bl(255);
 
 #if S3_DEFENDER_TFT_TEST
   // one-flash check of color order / inversion / offset:
   // a correct setup shows RED | GREEN | BLUE | WHITE bands in a white frame
+  bl(255);
   s_tft.fillScreen(TFT_BLACK);
   s_tft.fillRect(0, 20, 40, 40, TFT_RED);
   s_tft.fillRect(40, 20, 40, 40, TFT_GREEN);
@@ -74,14 +78,14 @@ void setState(State s) {
   switch (s) {
     case State::On:
       if (s_state == State::Sleep) s_tft.writecommand(0x29); // DISPON
-      ledcWrite(0, 255);
+      bl(255);
       break;
     case State::Dim:
       if (s_state == State::Sleep) s_tft.writecommand(0x29);
-      ledcWrite(0, 96);
+      bl(96);
       break;
     case State::Sleep:
-      ledcWrite(0, 0);
+      bl(0); // fully dark = LEDC duty 255 on the active-low wire
       s_tft.writecommand(0x28); // DISPOFF
       break;
   }

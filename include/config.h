@@ -59,7 +59,7 @@
 #endif
 
 #ifndef S3_DEFENDER_TFT_TEST
-#define S3_DEFENDER_TFT_TEST 1 // boot bars: one-flash check of color/offset; set 0 after bring-up
+#define S3_DEFENDER_TFT_TEST 0 // boot bars verified on hardware; enable for bring-up
 #endif
 
 #ifndef S3_DEFENDER_LONGPRESS_MS
