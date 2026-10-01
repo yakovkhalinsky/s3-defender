@@ -153,10 +153,16 @@ if (location.protocol === "file:") {
     sd: { mounted: true, files: ["log.csv"], used_bytes: 48211, card_bytes: 32768673792 },
     ws: { clients: 1, topk: 24 } }; };
   window.fetch = function (u, o) {
-    var body = ""; if (o && o.method === "POST") body = JSON.stringify({ ok: true, mode: "both" });
-    if (String(u).indexOf("/api/list") >= 0) body = JSON.stringify(__snap());
-    return Promise.resolve(new Response(body || JSON.stringify(__snap()),
-      { status: 200, headers: { "content-type": "application/json" } })); };
+    var s = String(u); var body = "";
+    if (s.indexOf("/api/mode") >= 0)
+      body = JSON.stringify({ ok: true, mode: s.split("mode=")[1] || "both" });
+    else if (s.indexOf("/api/list") >= 0)
+      body = JSON.stringify(window.__snap());
+    else
+      body = JSON.stringify(window.__snap());
+    return Promise.resolve(new Response(body,
+      { status: 200, headers: { "content-type": "application/json" } }));
+  };
   function WS(u) { var t = Math.max(50, 1000 - (Date.now() % 900)),
     self = this; self.send = self.close = function () {};
     self.onmessage = self.onopen = self.onclose = function () {};
@@ -288,8 +294,8 @@ function fallbackPoll() {
 document.querySelectorAll(".chip").forEach(function (b) {
   b.addEventListener("click", function () {
     var m = b.dataset.mode;
-    fetch("/api/mode", { method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ mode: m }) }).then(function (r) { return r.json(); })
+    fetch("/api/mode?mode=" + m, { method: "POST" })
+      .then(function (r) { return r.json(); })
       .then(function (j) { toast("mode → " + (j.mode || m)); })
       .catch(function () { toast("mode change failed"); });
   });

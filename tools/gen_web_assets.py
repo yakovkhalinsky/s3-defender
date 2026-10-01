@@ -13,12 +13,34 @@ No third-party python deps.
 """
 
 import math
+import os
 import struct
 import sys
 import zlib
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parent.parent
+
+def _repo_root() -> Path:
+    # PlatformIO pre-scripts get an exported SCons `env` with PROJECT_DIR;
+    # standalone runs fall back to module globals/environment/cwd.
+    try:
+        envobj = env  # noqa: F821 exported by SConscript
+    except NameError:
+        envobj = None
+    if envobj is not None:
+        d = envobj.get("PROJECT_DIR")
+        if d:
+            return Path(d)
+    env_dir = os.environ.get("PLATFORMIO_PROJECT_DIR")
+    if env_dir and (Path(env_dir) / "data").exists():
+        return Path(env_dir)
+    try:
+        return Path(__file__).resolve().parent.parent
+    except NameError:
+        return Path.cwd()
+
+
+REPO = _repo_root()
 DATA = REPO / "data"
 OUT = REPO / "src" / "web"
 
