@@ -45,7 +45,7 @@
 #endif
 
 #ifndef S3_DEFENDER_BLE_GAP_MS
-#define S3_DEFENDER_BLE_GAP_MS 150
+#define S3_DEFENDER_BLE_GAP_MS 2000 // 50% duty across windows: STA scan breathes
 #endif
 
 // snapshot budget: if the serialized frame exceeds this, retry with fewer rows

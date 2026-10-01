@@ -159,6 +159,11 @@ static void serialCmd() {
                       (int)WiFi.getMode(), WiFi.softAPSSID().c_str(),
                       WiFi.softAPIP().toString().c_str(),
                       (unsigned)WiFi.softAPgetStationNum(), (int)WiFi.status());
+      } else if (strncmp(buf, "md ", 3) == 0) {
+        if (app::setModeName(buf + 3, strlen(buf + 3)))
+          Serial.printf("mode -> %s\n", app::modeName());
+        else
+          Serial.println("md: wifi|ble|both");
       } else if (strcmp(buf, "scanq") == 0) {
         Serial.printf("wifi-state %d, next in ~%us\n",
                       (int)wifiscan::getState(), (unsigned)app::wifiNextScanInSec());

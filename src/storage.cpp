@@ -12,9 +12,11 @@
 namespace storage {
 namespace {
 
-const char* const DIR = "/sdcard/s3defender";
-const char* const CURRENT = "/sdcard/s3defender/log.csv";
-const char* const PREVIOUS = "/sdcard/s3defender/log.1.csv";
+// SD_MMC and fs objects take mount-RELATIVE paths; "/sdcard" gets prepended
+// internally. Using full paths produced "/sdcard/sdcard/..." and failed.
+const char* const DIR = "/s3defender";
+const char* const CURRENT = "/s3defender/log.csv";
+const char* const PREVIOUS = "/s3defender/log.1.csv";
 const char* const HEADER = "epoch_s,up_s,kind,id,name,rssi,ch,first,mode\n";
 
 TaskHandle_t s_task = nullptr;

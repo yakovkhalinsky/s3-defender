@@ -435,7 +435,15 @@ uint8_t clientCount() { return (uint8_t)s_ws.count(); }
 bool begin() {
   s_ws.onEvent([](AsyncWebSocket*, AsyncWebSocketClient* client,
                   AwsEventType type, void*, uint8_t*, size_t) {
-    if (type == WS_EVT_CONNECT) client->setCloseClientOnQueueFull(false);
+    if (type == WS_EVT_CONNECT) {
+      client->setCloseClientOnQueueFull(false);
+      Serial.printf("ws: connect id=%u ip=%s\n", client->id(),
+                    client->remoteIP().toString().c_str());
+    } else if (type == WS_EVT_DISCONNECT) {
+      Serial.printf("ws: disconnect id=%u\n", client->id());
+    } else if (type == WS_EVT_ERROR) {
+      Serial.printf("ws: error id=%u\n", client->id());
+    }
   });
 
   s_server.on("/", HTTP_GET, handleRoot);
