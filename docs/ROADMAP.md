@@ -1,6 +1,19 @@
 # Roadmap
 
+## Bring-up still to verify (on-device, live)
+
+Board flashed + web UI + both radios + display verified 2026-10-01/02.
+
+- [ ] Click `⬇ download log.csv` on the dashboard and confirm the CSV opens with sane rows
+- [ ] 24 h soak: `beat` heartbeat heap stable, CSV grows at a plausible rate, no watchdog reset
+- [ ] Card-hotplug: pull the card while logging, reinsert, confirm the 60 s re-mount retry works
+- [ ] Decide: trim the per-window `ble:` serial print once things stay stable (field-debug value vs chatter)
+
 ## Phase 0 — scaffold
+
+- [x] README, LICENSE, `.gitignore`
+- [x] Hardware / architecture / roadmap docs
+- [x] PlatformIO env for T-Dongle-S3
 
 - [x] README, LICENSE, `.gitignore`
 - [x] Hardware / architecture / roadmap docs
