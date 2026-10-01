@@ -1,25 +1,306 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>s3-defender</title>
-  <style>
-    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
-    body { margin: 1.5rem; background: #0b1020; color: #e8ecf4; }
-    h1 { font-size: 1.25rem; letter-spacing: 0.04em; }
-    .tag { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px;
-           background: #1f2a44; color: #9ec1ff; font-size: 0.75rem; }
-    p { max-width: 36rem; line-height: 1.45; color: #b8c0d4; }
-    code { background: #151b2e; padding: 0.1rem 0.35rem; border-radius: 4px; }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>s3-defender</title>
+<meta name="theme-color" content="#0b1020" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="icon" href="/favicon-32.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="s3-defender" />
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0b1020; --panel: #131a2e; --panel2: #1a2340; --line: #26304d;
+    --text: #e8ecf4; --dim: #97a1b8; --accent: #7fd4ff; --good: #46d68c;
+    --warn: #ffb454; --bad: #ff5f6d;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 14px/1.45 system-ui, sans-serif; padding-bottom: 2rem; }
+  header { padding: 0.8rem 1rem 0.5rem; position: sticky; top: 0; z-index: 5;
+           background: linear-gradient(var(--bg) 82%, rgba(11,16,32,0)); }
+  h1 { font-size: 1.05rem; margin: 0; display: flex; align-items: center; gap: 0.5rem;
+       letter-spacing: 0.02em; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--bad);
+         box-shadow: 0 0 6px currentColor; display: inline-block; }
+  .dot.live { background: var(--good); }
+  .dot.poll { background: var(--warn); }
+  #meta { display: flex; flex-wrap: wrap; gap: 0.35rem 0.9rem; color: var(--dim);
+          font-size: 0.78rem; margin: 0.4rem 0 0.55rem; }
+  #heap { min-width: 7rem; }
+  .chip { padding: 0.28rem 0.85rem; border-radius: 999px; border: 1px solid var(--line);
+          background: var(--panel); color: var(--dim); font: inherit; font-size: 0.8rem;
+          cursor: pointer; }
+  .chip.on { background: var(--panel2); color: var(--accent); border-color: #37507e; }
+  section { border: 1px solid var(--line); border-radius: 10px; margin: 0.6rem 1rem;
+            overflow: hidden; background: var(--panel); }
+  section h2 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.12em;
+               color: var(--accent); margin: 0; padding: 0.55rem 0.8rem;
+               display: flex; justify-content: space-between; align-items: center; }
+  section h2 .cnt { color: var(--dim); text-transform: none; letter-spacing: 0; }
+  .row { display: flex; justify-content: flex-end; gap: 0.5rem; align-items: center;
+         color: var(--dim); font-size: 0.72rem; padding: 0 0.8rem 0.55rem; }
+  select, .more > a { background: var(--panel2); color: var(--text); border: 1px solid var(--line);
+                      border-radius: 6px; font: inherit; font-size: 0.72rem; padding: 0.15rem; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { display: grid; grid-template-columns: 3.4rem 1fr auto; gap: 0.55rem;
+       align-items: center; padding: 0.44rem 0.8rem; border-top: 1px solid #1c2540; }
+  li.new { background: rgba(127, 212, 255, 0.07); }
+  li .rssi { height: 5px; border-radius: 3px; background: #202842; position: relative;
+             overflow: hidden; }
+  li .rssi i { position: absolute; inset: 0; width: 0;
+               border-radius: 3px; background: var(--accent); }
+  li .id { min-width: 0; }
+  li .id .name { display: block; overflow: hidden; text-overflow: ellipsis;
+                 white-space: nowrap; }
+  li .id .sub { color: var(--dim); font-size: 0.68rem; font-family: var(--mono, monospace); }
+  li .tag { color: var(--dim); font-size: 0.68rem; text-align: right; white-space: nowrap; }
+  li .tag b { color: var(--text); }
+  .more { padding: 0.5rem 0.8rem; font-size: 0.75rem; border-top: 1px solid #1c2540; }
+  .more a { cursor: pointer; }
+  footer { margin: 1rem; color: var(--dim); font-size: 0.75rem; line-height: 1.8; }
+  footer a { color: var(--accent); text-decoration: none; }
+  #toast { position: fixed; left: 50%; bottom: 1.4rem; transform: translateX(-50%);
+           background: var(--panel2); color: var(--warn); border: 1px solid var(--line);
+           border-radius: 8px; padding: 0.4rem 0.9rem; font-size: 0.78rem; opacity: 0;
+           transition: opacity 0.25s; pointer-events: none; }
+  .empty { color: var(--dim); font-size: 0.78rem; padding: 0.6rem 0.8rem; }
+</style>
 </head>
 <body>
-  <h1>s3-defender <span class="tag">stub UI</span></h1>
-  <p>
-    SoftAP is up. Live Wi‑Fi / BLE lists and WebSocket updates land in a later phase.
-    Watch the serial console for the firmware banner.
-  </p>
-  <p>SSID: <code>S3-Defender</code></p>
+<header>
+  <h1>s3-defender <span id="live" class="dot" title="connecting"></span></h1>
+  <div id="meta">
+    <span id="m-uptime">–</span>
+    <span id="m-heap" title="free / minimum free / fragmentation">–</span>
+    <span id="m-scan" title="radio state">–</span>
+    <span id="m-sd">–</span>
+  </div>
+  <div>
+    <button class="chip" data-mode="wifi">Wi-Fi</button>
+    <button class="chip" data-mode="ble">BLE</button>
+    <button class="chip" data-mode="both">Both</button>
+  </div>
+</header>
+
+<main>
+  <section>
+    <h2>Wi-Fi <span class="cnt" id="cnt-w">–</span></h2>
+    <div class="row">
+      <label><input type="checkbox" id="hide-w" /> hidden SSIDs</label>
+      <select id="sort-w">
+        <option value="rssi">RSSI</option>
+        <option value="ch">Channel</option>
+        <option value="name">Name</option>
+        <option value="age">Age</option>
+      </select>
+    </div>
+    <ul id="list-w"></ul>
+    <div class="more" id="more-w" hidden></div>
+  </section>
+
+  <section>
+    <h2>BLE <span class="cnt" id="cnt-b">–</span></h2>
+    <div class="row">
+      <select id="sort-b">
+        <option value="rssi">RSSI</option>
+        <option value="name">Name</option>
+        <option value="age">Age</option>
+      </select>
+    </div>
+    <ul id="list-b"></ul>
+    <div class="more" id="more-b" hidden></div>
+  </section>
+</main>
+
+<footer>
+  <div><a id="dl" hidden href="/download?file=log.csv">&#x2B07; download log.csv</a>
+       <span id="sd-note"></span></div>
+  <div id="ver"></div>
+  <div>Add to Home Screen for app-like install &middot; <a href="/manifest.webmanifest">manifest</a></div>
+</footer>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+// ---- file:// dev shim (device serves the real thing) -----------------------
+if (location.protocol === "file:") {
+  var mk = function (n, base) {
+    var a = [];
+    for (var i = 0; i < n; i++) a.push({
+      ssid: base == "w" ? ["Home", "Neighbour", "Hidden-" + i, "Cafe " + i][i % 4] : (i % 3 ? "" : "Test-" + i),
+      bssid: "f0:9f:c2:" + (10 + i) % 100 + ":1d:3a", rssi: -40 - (i * 4) % 48, ch: 1 + (i * 3) % 13,
+      auth: ["wpa2", "wpa3", "open"][i % 3], seen_ms: (i * 1300) % 11000, first_ms: (i * 900) % 60000, n: i * 11 + 3 });
+    return a;
+  };
+  var bk = function (n) { var a = []; for (var i = 0; i < n; i++) a.push({
+    name: i % 2 ? "" : ["TV Remote", "Watch", "Sensor-" + i][i % 3],
+    addr: "3c:71:bf:" + (9 + i) % 100 + ":e2:0d", at: [2, 1, 0][i % 3], rssi: -45 - (i * 5) % 50,
+    seen_ms: (i * 1700) % 9000, first_ms: (i * 700) % 50000, n: i * 7 + 2,
+    conn: !(i % 3), adv_len: 6 + (i * 9) % 26 });
+    return a; };
+  window.__snap = function () { var k = (Date.now() / 1000) | 0; return {
+    name: "s3-defender", ver: "dev-shim", mode: "both", uptime_s: k % 3600, epoch_s: 0,
+    heap: { free: 128000 - (k % 90), min: 121000, frag_pct: 4 },
+    scan: { wifi: "scanning", ble: "scanning", next_s: (3 - (k % 3)) },
+    wifi_count: 37, ble_count: 12,
+    wifi: mk(24, "w"), ble: bk(12),
+    sd: { mounted: true, files: ["log.csv"], used_bytes: 48211, card_bytes: 32768673792 },
+    ws: { clients: 1, topk: 24 } }; };
+  window.fetch = function (u, o) {
+    var body = ""; if (o && o.method === "POST") body = JSON.stringify({ ok: true, mode: "both" });
+    if (String(u).indexOf("/api/list") >= 0) body = JSON.stringify(__snap());
+    return Promise.resolve(new Response(body || JSON.stringify(__snap()),
+      { status: 200, headers: { "content-type": "application/json" } })); };
+  function WS(u) { var t = Math.max(50, 1000 - (Date.now() % 900)),
+    self = this; self.send = self.close = function () {};
+    self.onmessage = self.onopen = self.onclose = function () {};
+    this.reconnect = function () { setTimeout(function () {
+      self.onmessage({ data: JSON.stringify(window.__snap()) }); }, t); }; }
+  window.WebSocket = WS;
+}
+// ---- end shim ----------------------------------------------------------------
+
+var $ = function (id) { return document.getElementById(id); };
+var state = { ws: null, pollTimer: null, pollFails: 0, lastMode: null, full: null };
+var sortW = localStorage.getItem("sort-w") || "rssi";
+var sortB = localStorage.getItem("sort-b") || "rssi";
+$("sort-w").value = sortW; $("sort-b").value = sortB;
+
+function toast(msg) {
+  var t = $("toast"); t.textContent = msg; t.style.opacity = 1;
+  clearTimeout(t._h); t._h = setTimeout(function () { t.style.opacity = 0; }, 2200);
+}
+function age(ms) { var s = Math.round(ms / 1000); return s < 90 ? s + "s" : (s / 60 | 0) + "m"; }
+function rssiPct(r) { return Math.max(2, Math.min(100, (r + 95) / 55 * 100)); }
+function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+function fmt(k) { return k > 1048576 ? (k / 1048576).toFixed(1) + " MB" : (k / 1024 | 0) + " KB"; }
+
+function render(d) {
+  $("m-uptime").textContent = "up " + (d.uptime_s / 3600 | 0) + "h " + (d.uptime_s / 60 % 60 | 0) +
+                              "m" + (d.epoch_s ? "" : "");
+  $("m-heap").textContent = "heap " + Math.round(d.heap.free / 1024) + "k / " +
+                            Math.round(d.heap.min / 1024) + "k" + " · frag " + d.heap.frag_pct + "%";
+  $("m-scan").textContent = "scan " + d.scan.wifi + "/" + d.scan.ble +
+                            (d.scan.next_s ? " · next " + d.scan.next_s + "s" : "");
+  $("m-sd").textContent = d.sd.mounted
+    ? "sd " + (d.sd.used_bytes / 1024 | 0) + "k/" + Math.round(d.sd.card_bytes / 1.074e9 * 10) / 10 + "G"
+    : "no sd";
+  var live = $("live");
+  for (var i = 0; i < 3; i++) {
+    var b = document.querySelectorAll(".chip")[i];
+    b.classList.toggle("on", b.dataset.mode === d.mode);
+    b.disabled = b.dataset.mode === d.mode;
+  }
+  state.lastMode = d.mode;
+  $("cnt-w").textContent = d.wifi_count + (d.wifi.length < d.wifi_count ? " of " + d.wifi.length : "");
+  $("cnt-b").textContent = d.ble_count + (d.ble.length < d.ble_count ? " of " + d.ble.length : "");
+  renderWifi(d); renderBle(d);
+  $("dl").hidden = !d.sd.mounted;
+  $("sd-note").textContent = d.sd.mounted ? fmt(d.sd.used_bytes) + " logged" : "";
+  $("ver").textContent = d.name + " · " + d.ver + " · ws " + d.ws.clients;
+  var mw = d.wifi_count > d.wifi.length ? $("more-w") : ($("more-w").hidden = true);
+  if (mw) { mw.hidden = false; mw.innerHTML = '<a onclick=showAll("w")>show all (first ' +
+    d.wifi_count + " by rssi)</a>"; }
+  var mb = d.ble_count > d.ble.length ? $("more-b") : ($("more-b").hidden = true);
+  if (mb) { mb.hidden = false; mb.innerHTML = '<a onclick=showAll("b")>show all</a>'; }
+}
+
+function renderWifi(d) {
+  var now = d.uptime_s, list = d.wifi.slice(0);
+  var k = $("sort-w").value;
+  if (k === "name") list.sort(function (a, b) { return (a.ssid || "").localeCompare(b.ssid || ""); });
+  else if (k === "ch") list.sort(function (a, b) { return a.ch - b.ch || a.rssi - b.rssi; });
+  else if (k === "age") list.sort(function (a, b) { return a.seen_ms - b.seen_ms; });
+  else list.sort(function (a, b) { return b.rssi - a.rssi; });
+  var hide = $("hide-w").checked;
+  var out = "";
+  for (var i = 0; i < list.length; i++) {
+    var w = list[i]; if (hide && !w.ssid) continue;
+    out += '<li' + (w.first_ms < 5000 ? ' class="new"' : "") + ">"
+      + '<div><span class="rssi"><i style="width:' + rssiPct(w.rssi) + '%"></i></span>'
+      + w.rssi + "dBm</div>"
+      + "<div class=\"id\"><span class=\"name\">" + esc(w.ssid || "(hidden)") + "</span>"
+      + "<span class=\"sub\">ch" + w.ch + " · " + w.auth + " · " + w.bssid + "</span></div>"
+      + '<div class="tag">age <b>' + age(w.seen_ms) + "</b></div></li>";
+  }
+  $("list-w").innerHTML = out || '<li class="empty">listening…</li>';
+}
+
+function renderBle(d) {
+  var list = d.ble.slice(0), k = $("sort-b").value;
+  if (k === "name") list.sort(function (a, b) { return (a.name || "~").localeCompare(b.name || "~"); });
+  else if (k === "age") list.sort(function (a, b) { return a.seen_ms - b.seen_ms; });
+  else list.sort(function (a, b) { return b.rssi - a.rssi; });
+  var AT = ["pub", "rnd", "rpa", "nrpa"], out = "";
+  for (var i = 0; i < list.length; i++) {
+    var b = list[i];
+    out += '<li' + (b.first_ms < 5000 ? ' class="new"' : "") + ">"
+      + '<div><span class="rssi"><i style="width:' + rssiPct(b.rssi) + '%"></i></span>'
+      + b.rssi + "dBm</div>"
+      + "<div class=\"id\"><span class=\"name\">" + esc(b.name || "unnamed") + "</span>"
+      + "<span class=\"sub\">" + b.addr + " · " + AT[b.at] + (b.conn ? " · c" : "") + "</span></div>"
+      + '<div class="tag">age <b>' + age(b.seen_ms) + "</b> · " + b.adv_len + "B</div></li>";
+  }
+  $("list-b").innerHTML = out || '<li class="empty">listening…</li>';
+}
+
+function showAll(kind) {
+  fetch("/api/list?kind=" + kind + "&limit=128").then(function (r) { return r.json(); })
+    .then(function (j) {
+      var patch = kind === "w" ? { wifi: j.wifi, wifi_count: j.wifi.length }
+                               : { ble: j.ble, ble_count: j.ble.length };
+      render(Object.assign({}, lastSnap || {}, patch));
+      toast((kind === "w" ? "wifi: " : "ble: ") + patch.wifi_count + " listed");
+    }).catch(function () { toast("show-all failed"); });
+}
+
+// ---- transport: WS with backoff, then polling --------------------------------
+function connect() {
+  try { var u = "ws://" + location.host + "/ws"; if (location.protocol === "https:") u = "wss://" + location.host + "/ws";
+    state.ws = new WebSocket(u); } catch (e) { return fallbackPoll(); }
+  state.ws.onopen = function () { $("live").classList.add("live"); state.pollFails = 0; };
+  state.ws.onmessage = function (e) {
+    try { lastSnap = JSON.parse(e.data); render(lastSnap); } catch (err) { }
+  };
+  state.ws.onclose = function () { $("live").classList.remove("live"); setTimeout(reconnect, 1000); };
+  state.ws.onerror = function () { try { state.ws.close(); } catch (e) { } };
+}
+var lastSnap = null, tries = 0;
+function reconnect() {
+  if (tries++ < 3) { connect(); } else { fallbackPoll(); }
+}
+function fallbackPoll() {
+  clearInterval(state.pollTimer);
+  $("live").classList.add("poll");
+  state.pollTimer = setInterval(function () {
+    fetch("/api/status").then(function (r) { return r.json(); })
+      .then(function (d) { lastSnap = d; render(d); })
+      .catch(function () { });
+  }, 2000);
+  fetch("/api/status").then(function (r) { return r.json(); }).then(function (d) { lastSnap = d; render(d); });
+}
+document.querySelectorAll(".chip").forEach(function (b) {
+  b.addEventListener("click", function () {
+    var m = b.dataset.mode;
+    fetch("/api/mode", { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ mode: m }) }).then(function (r) { return r.json(); })
+      .then(function (j) { toast("mode → " + (j.mode || m)); })
+      .catch(function () { toast("mode change failed"); });
+  });
+});
+$("sort-w").addEventListener("change", function (e) {
+  localStorage.setItem("sort-w", e.target.value); if (lastSnap) renderWifi(lastSnap); });
+$("sort-b").addEventListener("change", function (e) {
+  localStorage.setItem("sort-b", e.target.value); if (lastSnap) renderBle(lastSnap); });
+$("hide-w").addEventListener("change", function () { if (lastSnap) renderWifi(lastSnap); });
+
+connect();
+</script>
 </body>
 </html>

@@ -1,0 +1,19 @@
+{
+  "id": "/",
+  "name": "s3-defender",
+  "short_name": "s3def",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#0b1020",
+  "theme_color": "#0b1020",
+  "orientation": "portrait",
+  "description": "Passive Wi-Fi + BLE air monitor for the LilyGO T-Dongle-S3",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-192-m.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon-512-m.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
