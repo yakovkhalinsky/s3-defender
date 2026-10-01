@@ -16,6 +16,7 @@
 static void uiTask(void*) {
   uint32_t lastPrune = 0;
   uint32_t lastNew = 0;
+  uint32_t lastBeat = 0;
 
   for (;;) {
     const uint32_t now = millis();
@@ -75,6 +76,18 @@ static void uiTask(void*) {
       led::setPattern(led::Pattern::Idle);
     }
 
+    // heartbeat: lets any terminal positively detect a running app
+    if ((uint32_t)(now - lastBeat) >= 5000) {
+      lastBeat = now;
+      Serial.printf("beat %lu.%lus heap=%uk w=%u b=%u mode=%s sta=%u ap=%s\n",
+                    (unsigned long)(now / 1000), (unsigned long)(now % 1000),
+                    (unsigned)(heap_caps_get_free_size(MALLOC_CAP_8BIT) / 1024),
+                    (unsigned)store::wifiCount(), (unsigned)store::bleCount(),
+                    app::modeName(),
+                    (unsigned)WiFi.softAPgetStationNum(),
+                    WiFi.softAPIP().toString().c_str());
+    }
+
     // dim after 60 s with no new devices
     if (display::state() == display::State::On &&
         (uint32_t)(now - display::lastActivityMs()) > 60000) {
@@ -116,7 +129,49 @@ void setup() {
   Serial.printf("free heap after init: %u\n", ESP.getFreeHeap());
 }
 
+static void serialCmd() {
+  static char buf[40];
+  static uint8_t n = 0;
+  char out = 0;
+  while (Serial.available()) {
+    char c = (char)Serial.read();
+    if (c == '\n' || c == '\r') {
+      buf[n] = 0;
+      n = 0;
+      if (sscanf(buf, "bl %hhu", (unsigned char*)&out) == 1) {
+        display::setBacklightRaw((uint8_t)out);
+        Serial.printf("bl=%u\n", (unsigned)out);
+      } else if (sscanf(buf, "rot %hhu", (unsigned char*)&out) == 1) {
+        display::applyRotation((uint8_t)out);
+        Serial.printf("rot=%u\n", (unsigned)out);
+      } else if (strcmp(buf, "bars") == 0) {
+        display::setState(display::State::On);
+        display::testBars();
+        Serial.println("bars on");
+      } else if (strcmp(buf, "barsq") == 0) {
+        display::setState(display::State::Sleep);
+        Serial.println("bars off");
+      } else if (strcmp(buf, "inv") == 0) {
+        display::toggleInversion();
+        Serial.println("inv toggled");
+      } else if (strcmp(buf, "ap") == 0) {
+        Serial.printf("wifi mode %d, AP %s, IP %s, stations %u, wl status %d\n",
+                      (int)WiFi.getMode(), WiFi.softAPSSID().c_str(),
+                      WiFi.softAPIP().toString().c_str(),
+                      (unsigned)WiFi.softAPgetStationNum(), (int)WiFi.status());
+      } else if (strcmp(buf, "scanq") == 0) {
+        Serial.printf("wifi-state %d, next in ~%us\n",
+                      (int)wifiscan::getState(), (unsigned)app::wifiNextScanInSec());
+      }
+      buf[0] = 0;
+      continue;
+    }
+    if (n < sizeof(buf) - 1) buf[n++] = c;
+  }
+}
+
 void loop() {
   app::tick(); // mode application + NVS debounce
+  serialCmd();
   vTaskDelay(pdMS_TO_TICKS(10));
 }

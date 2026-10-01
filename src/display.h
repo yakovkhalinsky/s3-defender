@@ -31,4 +31,10 @@ void activityPush();      // ui task on change: wake Dim/Sleep to On
 void tick(const Snap& s); // 10 Hz
 uint32_t lastActivityMs();
 
+// bring-up helpers (serial console drives these until the panel is verified)
+void setBacklightRaw(uint8_t duty);
+void testBars();
+void applyRotation(uint8_t r);
+void toggleInversion();
+
 } // namespace display

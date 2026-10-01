@@ -137,4 +137,31 @@ void tick(const Snap& s) {
 
 uint32_t lastActivityMs() { return s_activity; }
 
+// ---- bring-up helpers (driven live from the serial console) ----------------
+
+void setBacklightRaw(uint8_t duty) { ledcWrite(0, duty); }
+
+void testBars() {
+  s_tft.fillScreen(TFT_BLACK);
+  s_tft.fillRect(0, 20, 40, 40, TFT_RED);
+  s_tft.fillRect(40, 20, 40, 40, TFT_GREEN);
+  s_tft.fillRect(80, 20, 40, 40, TFT_BLUE);
+  s_tft.fillRect(120, 20, 40, 40, TFT_WHITE);
+  s_tft.drawRect(0, 0, 160, 80, TFT_WHITE);
+}
+
+void applyRotation(uint8_t r) {
+  s_tft.setRotation(r % 4);
+  s_tft.fillScreen(C_BG);
+  memset(s_line, 0, sizeof(s_line));
+}
+
+void toggleInversion() {
+  static bool inv = false;
+  inv = !inv;
+  s_tft.invertDisplay(inv);
+  s_tft.fillScreen(C_BG);
+  memset(s_line, 0, sizeof(s_line));
+}
+
 } // namespace display
