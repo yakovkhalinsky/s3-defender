@@ -35,7 +35,23 @@ Docs: [wiki.lilygo.cc — T-Dongle-S3](https://wiki.lilygo.cc/products/t-dongle-
 
 ## PlatformIO
 
-See root `platformio.ini` (`env:t-dongle-s3`).
+See root `platformio.ini` (`env:t-dongle-s3`). Highlights:
+
+- **`USE_HSPI_PORT=1` is mandatory** for TFT_eSPI on arduino core ≥ 2.0.15:
+  the core's `REG_SPI_BASE(i)` returns NULL for SPI port ids < 2 on the S3, and
+  TFT_eSPI's default FSPI port then panics (`StoreProhibited`) at `tft.init()`.
+  Using the HSPI/GPSPI3 port avoids it (same as LilyGO's own
+  `Setup47_ST7735.h`).
+- Display flags (copied from LilyGO's validated setup): `ST7735_GREENTAB160x80`,
+  `TFT_WIDTH=80`, `TFT_HEIGHT=160`, `TFT_RGB_ORDER=TFT_BGR`,
+  `SPI_FREQUENCY=27000000`. Wrong colors/geometry on your unit? See the
+  fallback list in README's bring-up checklist.
+- Backlight (GPIO38) is owned by the app (LEDC PWM), not the library.
+- SD: `SD_MMC.setPins(12, 16, 14, 17, 21, 18)` + `SD_MMC.begin("/sdcard",
+  false, false, SDMMC_FREQ_DEFAULT, 5)` — 4-bit is what LilyGO's own
+  `sd_card` example uses; define `S3_DEFENDER_SD_1BIT` for a 1-bit fallback.
+- APA102: payload byte order is **B, G, R**; if red renders blue, define
+  `S3_DEFENDER_APA102_RGB`.
 
 ## Arduino IDE (reference)
 

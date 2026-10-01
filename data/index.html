@@ -188,8 +188,8 @@ function esc(s) { var d = document.createElement("div"); d.textContent = s; retu
 function fmt(k) { return k > 1048576 ? (k / 1048576).toFixed(1) + " MB" : (k / 1024 | 0) + " KB"; }
 
 function render(d) {
-  $("m-uptime").textContent = "up " + (d.uptime_s / 3600 | 0) + "h " + (d.uptime_s / 60 % 60 | 0) +
-                              "m" + (d.epoch_s ? "" : "");
+  $("m-uptime").textContent = "up " + (d.uptime_s / 3600 | 0) + "h " +
+                              (d.uptime_s / 60 % 60 | 0) + "m";
   $("m-heap").textContent = "heap " + Math.round(d.heap.free / 1024) + "k / " +
                             Math.round(d.heap.min / 1024) + "k" + " · frag " + d.heap.frag_pct + "%";
   $("m-scan").textContent = "scan " + d.scan.wifi + "/" + d.scan.ble +
@@ -279,7 +279,12 @@ function connect() {
 }
 var lastSnap = null, tries = 0;
 function reconnect() {
-  if (tries++ < 3) { connect(); } else { fallbackPoll(); }
+  if (tries < 3) {
+    tries++;
+    connect();
+  } else if (!state.pollTimer) {
+    fallbackPoll();
+  }
 }
 function fallbackPoll() {
   clearInterval(state.pollTimer);

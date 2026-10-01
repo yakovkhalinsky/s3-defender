@@ -1,43 +1,48 @@
 # Roadmap
 
-## Phase 0 — scaffold (this repo)
+## Phase 0 — scaffold
 
 - [x] README, LICENSE, `.gitignore`
 - [x] Hardware / architecture / roadmap docs
 - [x] PlatformIO env for T-Dongle-S3
-- [x] SoftAP stub + placeholder HTML
-- [x] Serial banner + TODO hooks
 
 ## Phase 1 — SoftAP UI shell
 
-- [ ] Serve embedded or LittleFS UI (list + mode toggle)
-- [ ] `/api/status` JSON
-- [ ] BOOT cycles mode (stubbed scanners still OK)
+- [x] Embedded UI (generated header from `data/index.html`)
+- [x] `/api/status` JSON + mode endpoints (`/api/mode`, `/api/display`, `/api/time`)
+- [x] BOOT cycles mode; long press toggles screen dim/sleep
 
 ## Phase 2 — live radio
 
-- [ ] Wi‑Fi scan / promiscuous beacons → `scan_store`
-- [ ] BLE scan → `scan_store`
-- [ ] WebSocket push of sorted lists (RSSI)
+- [x] Wi‑Fi scan (standard scan API, not promiscuous) → `scan_store`
+- [x] BLE scan (NimBLE, scan-only) → `scan_store`
+- [x] WebSocket push of sorted lists (1 Hz full snapshot, adaptive top-K)
 
 ## Phase 3 — on-device UX
 
-- [ ] ST7735: mode, counts, top Wi‑Fi / BLE line
-- [ ] APA102 activity colour
-- [ ] Simple sleep / dim after idle
+- [x] ST7735: mode, counts, top Wi‑Fi / BLE rows
+- [x] APA102 activity color (new-device flash, idle breathing)
+- [x] Dim after 60 s idle; long-press sleep toggle
 
 ## Phase 4 — logging
 
-- [ ] microSD CSV (timestamp, type, id, rssi)
-- [ ] Download last log over HTTP
+- [x] microSD CSV (epoch/uptime, kind, id, name, rssi, ch, first, mode)
+- [x] Streaming log download over HTTP + 8 MB rotation
 
-## Phase 5 — PWA
+## Phase 5 — PWA (no service worker)
 
-- [ ] Manifest + service worker (offline shell)
-- [ ] “Add to Home Screen” friendly layout for phones
+- [x] Manifest + generated icons + iOS/Android Add-to-Home-Screen meta
+- [x] Amended: a service worker is impossible on plain `http://192.168.4.1`
+      (insecure origin) — no offline shell; manifest-only install instead
+
+## Open extensions (not built)
+
+- [ ] Promiscuous Wi‑Fi observation, auto-enabled only while no web client is
+      attached (strict-passive; would avoid the on/off-channel scan disruption)
+- [ ] IRK resolution to group a phone's rotating random addresses (RPA)
 
 ## Non-goals
 
-- Deauthentication / jamming  
-- Credential capture or handshake cracking  
+- Deauthentication / jamming
+- Credential capture or handshake cracking
 - Hidden packet injection gadgets

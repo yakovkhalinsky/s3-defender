@@ -4,7 +4,26 @@ Passive **Wi‑Fi + BLE** air monitor for the [LilyGO T-Dongle-S3](https://githu
 
 Plug it in, join SoftAP **`S3-Defender`**, open the web UI, and watch nearby networks and BLE advertisements. On-device TFT shows live counts; the APA102 LED blinks with activity.
 
-> **Passive only.** This project observes beacons and advertisements (SSID / BSSID / RSSI / channel, BLE ADV). It does **not** deauth, crack, inject, or MitM. Use it on networks and devices you are allowed to monitor.
+> **Passive only.** This project observes APs and advertisements (SSID / BSSID / RSSI / channel, BLE ADV). It does **not** deauth, crack, inject, or MitM. Use it on networks and devices you are allowed to monitor.
+>
+> Honesty note: Wi‑Fi discovery uses the standard station scan (the same probe requests any phone sends), because the radio must keep serving the SoftAP/web UI. A strict‑passive promiscuous sniffer (only while no web client is attached) is a possible future toggle — see ROADMAP "Open extensions".
+
+### Install (browser)
+
+On plain `http://192.168.4.1` a service worker can't run (insecure origin — that's a browser rule, not a config). What works:
+
+- **iOS Safari**: Share → *Add to Home Screen* → opens standalone (full‑screen, your icon).
+- **Android Chrome**: menu → *Add to Home screen* (browser‑badged shortcut; the automatic install prompt needs HTTPS).
+
+## Libraries (all pinned)
+
+| | |
+|---|---|
+| platform | `espressif32 @ 6.12.0` (arduino core 2.0.17, IDF 4.4.7) |
+| BLE | `NimBLE-Arduino @ 1.4.3` (2.x needs core 3.x) |
+| Web | `ESPAsyncWebServer @ 3.12.1` + `AsyncTCP @ 3.5.0` (ESP32Async forks) |
+| Display | `TFT_eSPI @ 2.5.43` (configured in `platformio.ini`) |
+| JSON | `ArduinoJson @ 7.4.3` |
 
 ## Hardware
 
@@ -23,13 +42,13 @@ Plug it in, join SoftAP **`S3-Defender`**, open the web UI, and watch nearby net
 | Area | State |
 |---|---|
 | Docs + PlatformIO skeleton | ✅ |
-| SoftAP + placeholder web page | ✅ stub |
-| Wi‑Fi promiscuous / scan | ⏳ planned |
-| BLE scan | ⏳ planned |
-| Live WebSocket JSON UI | ⏳ planned |
-| TFT + APA102 UX | ⏳ planned |
-| TF CSV logging | ⏳ planned |
-| Installable PWA | ⏳ later |
+| SoftAP + web UI (live lists, mode) | ✅ |
+| Wi‑Fi scan → live lists | ✅ (standard scan, not promiscuous) |
+| BLE scan (NimBLE) | ✅ |
+| Live WebSocket JSON UI | ✅ (1 Hz full snapshot) |
+| TFT + APA102 UX | ✅ (colors need one on‑device check) |
+| TF CSV logging + download | ✅ |
+| Installable PWA | ✅ manifest/icons (no service worker — plain‑IP HTTP can't run one) |
 
 See [docs/ROADMAP.md](docs/ROADMAP.md).
 
@@ -39,8 +58,19 @@ See [docs/ROADMAP.md](docs/ROADMAP.md).
 2. Clone this repo and open the folder in VS Code.
 3. Plug the T-Dongle-S3 into USB‑A.
 4. Build & upload (`PlatformIO: Upload`). If upload fails, hold **BOOT** while plugging in, upload, then unplug/replug without BOOT.
-5. Open serial monitor at **115200**. SoftAP should advertise **`S3-Defender`** (open / default password in firmware when implemented).
-6. Connect a phone or laptop to that AP and open the URL printed on serial (typically `http://192.168.4.1`).
+5. Open serial monitor at **115200**. SoftAP should advertise **`S3-Defender`** (open; define `S3_DEFENDER_SOFTAP_PASS` in `platformio.ini` for WPA2).
+6. Connect a phone or laptop to that AP and open the URL printed on serial (`http://192.168.4.1`).
+
+## Bring-up checklist (first flash)
+
+1. **Serial** (115200): banner, `SoftAP … up — AP IP 192.168.4.1`, heap free after init (~120–170 KB expected), `sd: mounted` (or the 60 s retry note if no card).
+2. **Web UI**: join `S3-Defender`, open `http://192.168.4.1` — live dot goes green when the WebSocket is up.
+3. **Scan cycles**: the AP drops off-channel for ~1.5 s every 6 s; the dot should stay green. If your phone drops → define `S3_DEFENDER_SCAN_PAUSE_WITH_CLIENTS` and flash again.
+4. **BOOT button**: short press cycles wifi → ble → both (persists across replugs); long press toggles screen dim/sleep.
+5. **TFT**: at boot you'll see RED | GREEN | BLUE | WHITE bands. If they're wrong: colors swapped → add `-D TFT_RGB_ORDER=TFT_RGB`; colors inverted → add `-D TFT_INVERSION_ON=1`; geometry off → try `ST7735_BLACKTAB`/`GREENTAB`/`REDTAB160x80` instead of `ST7735_GREENTAB160x80`; upside down → `-D S3_DEFENDER_TFT_ROTATION=3`.
+6. **APA102**: red pulse under low heap means the byte order is right; if red shows blue add `-D S3_DEFENDER_APA102_RGB=1`.
+7. **SD**: insert card → mount log on boot; `⬇ download log.csv` appears in the UI footer; watch `sd:` lines on serial for problems (fallback: `-D S3_DEFENDER_SD_1BIT=1`).
+8. After step 5 passes, set `-D S3_DEFENDER_TFT_TEST=0` in `platformio.ini` so the boot bars go away, and flash once more.
 
 Arduino IDE settings (if you prefer Arduino over PlatformIO) are in [docs/HARDWARE.md](docs/HARDWARE.md).
 
